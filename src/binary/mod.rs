@@ -66,6 +66,19 @@ pub struct SystemInfo {
     pub rsdp_addr: Option<PhysAddr>,
 }
 
+/// Enable SIMD
+fn enable_simd() {
+    use x86_64::registers::control::{Cr0, Cr0Flags, Cr4, Cr4Flags};
+
+    unsafe {
+        // Enable co-processor (FPU)
+        Cr0::update(|x| *x |= Cr0Flags::MONITOR_COPROCESSOR);
+
+        // Enable SSE
+        Cr4::update(|x| *x |= Cr4Flags::OSFXSR | Cr4Flags::OSXMMEXCPT_ENABLE | Cr4Flags::OSXSAVE);
+    }
+}
+
 /// Loads the kernel ELF executable into memory and switches to it.
 ///
 /// This function is a convenience function that first calls [`set_up_mappings`], then
@@ -94,6 +107,8 @@ where
         &mut mappings,
         system_info,
     );
+
+    enable_simd();
     switch_to_kernel(page_tables, mappings, boot_info, two_frames);
 }
 
